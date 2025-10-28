@@ -154,8 +154,8 @@ export default function Users() {
                 <p className="text-dark-400 text-sm">Total Users</p>
                 <p className="text-2xl font-bold text-white">{users.length}</p>
               </div>
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Users className="w-5 h-5 text-blue-400" />
+              <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                <Users />
               </div>
             </div>
           </CardContent>
@@ -182,8 +182,8 @@ export default function Users() {
                 <p className="text-dark-400 text-sm">Admins</p>
                 <p className="text-2xl font-bold text-white">{users.filter(u => u.role === 'Admin').length}</p>
               </div>
-              <div className="p-2 bg-gold-500/20 rounded-lg">
-                <Users className="w-5 h-5 text-gold-400" />
+              <div className="p-2 bg-gold-500/20 rounded-lg text-gold-400">
+                <Users />
               </div>
             </div>
           </CardContent>
