@@ -111,7 +111,7 @@ export default function Dashboard() {
     return new Date(date).toLocaleDateString()
   }
 
-  const recentActivities = recentUsers.map((user, index) => ({
+  const recentActivities = recentUsers.map((user) => ({
     id: user._id,
     action: 'New user registered',
     user: user.email,
