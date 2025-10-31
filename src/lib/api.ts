@@ -1,5 +1,6 @@
 // API Base URL - should be set via environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://rtm-backend.vercel.app/api';
 
 // Types
 export interface ApiResponse<T = any> {
