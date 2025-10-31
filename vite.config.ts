@@ -10,4 +10,25 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'esbuild', // Using esbuild (faster, built-in) instead of terser
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['lucide-react'],
+        },
+      },
+    },
+  },
+  server: {
+    port: 5173,
+    open: true,
+  },
+  preview: {
+    port: 4173,
+    open: true,
+  },
 })
