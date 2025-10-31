@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/Sidebar'
+import { useAuth } from '@/context/AuthContext'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -8,14 +9,16 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleLogout = () => {
     setIsLoading(true)
+    logout()
     setTimeout(() => {
       setIsLoading(false)
       navigate('/signin')
-    }, 1000)
+    }, 300)
   }
 
   return (

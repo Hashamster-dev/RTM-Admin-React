@@ -1,26 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Lock, Mail, Eye, EyeOff } from 'lucide-react'
+import { Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
 export default function SignIn() {
   const navigate = useNavigate()
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [isAuthenticated, authLoading, navigate])
+
+  // Don't render if already authenticated (prevents flash)
+  if (!authLoading && isAuthenticated) {
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     setIsLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await login({ email, password })
+      // Navigation will happen automatically via useEffect when isAuthenticated becomes true
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign in. Please try again.')
       setIsLoading(false)
-      navigate('/dashboard')
-    }, 1000)
+    }
   }
 
   return (
@@ -86,6 +104,13 @@ export default function SignIn() {
                   </button>
                 </div>
               </div>
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{error}</span>
+                </div>
+              )}
 
               <Button
                 type="submit"

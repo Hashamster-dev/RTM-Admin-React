@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import Layout from '@/components/Layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
@@ -7,52 +8,129 @@ import {
   TrendingUp, 
   BarChart3,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react'
+import { api } from '@/lib/api'
+import { User } from '@/lib/api'
 
 export default function Dashboard() {
-  const stats = [
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    newUsersThisMonth: 0,
+    admins: 0,
+  })
+  const [recentUsers, setRecentUsers] = useState<User[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        // Fetch all users to calculate stats
+        const usersResponse = await api.getUsers({ limit: 1000, sort: 'createdAt', order: 'desc' })
+        const users = usersResponse.data || []
+
+        // Calculate stats
+        const now = new Date()
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        
+        const totalUsers = usersResponse.pagination?.total || users.length
+        const newUsersThisMonth = users.filter(
+          (user) => new Date(user.createdAt) >= thisMonth
+        ).length
+        const admins = users.filter((user) => user.role === 'admin').length
+
+        setStats({
+          totalUsers,
+          activeUsers: users.length, // You can enhance this with lastLogin tracking
+          newUsersThisMonth,
+          admins,
+        })
+
+        // Get recent users for activities
+        setRecentUsers(users.slice(0, 5))
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  const statsCards = [
     {
       title: 'Total Users',
-      value: '2,543',
-      change: '+12%',
-      changeType: 'positive',
+      value: stats.totalUsers.toLocaleString(),
+      change: stats.newUsersThisMonth > 0 ? `+${stats.newUsersThisMonth}` : '0',
+      changeType: 'positive' as const,
       icon: Users,
       color: 'text-blue-500'
     },
     {
-      title: 'Active Sessions',
-      value: '1,234',
-      change: '+8%',
-      changeType: 'positive',
+      title: 'Active Users',
+      value: stats.activeUsers.toLocaleString(),
+      change: 'Recently active',
+      changeType: 'positive' as const,
       icon: Activity,
       color: 'text-green-500'
     },
     {
-      title: 'Revenue',
-      value: '$45,678',
-      change: '+23%',
-      changeType: 'positive',
+      title: 'Admins',
+      value: stats.admins.toString(),
+      change: 'Admin accounts',
+      changeType: 'positive' as const,
       icon: DollarSign,
       color: 'text-gold-500'
     },
     {
-      title: 'Growth Rate',
-      value: '18.5%',
-      change: '+5%',
-      changeType: 'positive',
+      title: 'New This Month',
+      value: stats.newUsersThisMonth.toString(),
+      change: `${stats.totalUsers > 0 ? Math.round((stats.newUsersThisMonth / stats.totalUsers) * 100) : 0}% of total`,
+      changeType: 'positive' as const,
       icon: TrendingUp,
       color: 'text-purple-500'
     }
   ]
 
-  const recentActivities = [
-    { id: 1, action: 'New user registered', user: 'john.doe@example.com', time: '2 minutes ago', type: 'success' },
-    { id: 2, action: 'Payment processed', user: 'jane.smith@example.com', time: '5 minutes ago', type: 'success' },
-    { id: 3, action: 'Failed login attempt', user: 'unknown@example.com', time: '8 minutes ago', type: 'warning' },
-    { id: 4, action: 'Profile updated', user: 'mike.wilson@example.com', time: '12 minutes ago', type: 'info' },
-    { id: 5, action: 'Account suspended', user: 'spam@example.com', time: '15 minutes ago', type: 'error' }
-  ]
+  const formatTimeAgo = (date: string): string => {
+    const now = new Date()
+    const userDate = new Date(date)
+    const diffMs = now.getTime() - userDate.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+    return new Date(date).toLocaleDateString()
+  }
+
+  const recentActivities = recentUsers.map((user, index) => ({
+    id: user._id,
+    action: 'New user registered',
+    user: user.email,
+    time: formatTimeAgo(user.createdAt),
+    type: 'success' as const
+  }))
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-8 h-8 text-gold-500 animate-spin" />
+            <p className="text-dark-300">Loading dashboard data...</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout>
@@ -65,7 +143,7 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
+          {statsCards.map((stat, index) => (
             <Card key={index} className="bg-dark-800/50 border-dark-700 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Layout from '@/components/Layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,79 +6,62 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { 
   Search, 
   Filter, 
-  MoreVertical, 
-  Edit, 
   Trash2, 
-  Eye,
   UserPlus,
-  Download,
-  Upload
+  Eye,
+  Loader2,
+  AlertCircle
 } from 'lucide-react'
+import { api, User } from '@/lib/api'
 
 export default function Users() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedUsers, setSelectedUsers] = useState<number[]>([])
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 1,
+  })
 
-  // Mock user data
-  const users = [
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      role: 'Admin',
-      status: 'Active',
-      lastLogin: '2 hours ago',
-      avatar: 'JD',
-      joinDate: '2024-01-15'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane.smith@example.com',
-      role: 'User',
-      status: 'Active',
-      lastLogin: '1 day ago',
-      avatar: 'JS',
-      joinDate: '2024-02-20'
-    },
-    {
-      id: 3,
-      name: 'Mike Wilson',
-      email: 'mike.wilson@example.com',
-      role: 'Moderator',
-      status: 'Inactive',
-      lastLogin: '1 week ago',
-      avatar: 'MW',
-      joinDate: '2024-01-10'
-    },
-    {
-      id: 4,
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@example.com',
-      role: 'User',
-      status: 'Active',
-      lastLogin: '3 hours ago',
-      avatar: 'SJ',
-      joinDate: '2024-03-05'
-    },
-    {
-      id: 5,
-      name: 'David Brown',
-      email: 'david.brown@example.com',
-      role: 'User',
-      status: 'Suspended',
-      lastLogin: '2 weeks ago',
-      avatar: 'DB',
-      joinDate: '2024-02-15'
+  useEffect(() => {
+    fetchUsers()
+  }, [page])
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      const response = await api.getUsers({ 
+        page, 
+        limit: 10, 
+        sort: 'createdAt', 
+        order: 'desc' 
+      })
+      setUsers(response.data || [])
+      if (response.pagination) {
+        setPagination(response.pagination)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch users')
+      console.error('Error fetching users:', err)
+    } finally {
+      setIsLoading(false)
     }
-  ]
+  }
+    
+  
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleSelectUser = (userId: number) => {
+  const handleSelectUser = (userId: string) => {
     setSelectedUsers(prev =>
       prev.includes(userId)
         ? prev.filter(id => id !== userId)
@@ -90,30 +73,33 @@ export default function Users() {
     if (selectedUsers.length === filteredUsers.length) {
       setSelectedUsers([])
     } else {
-      setSelectedUsers(filteredUsers.map(user => user.id))
+      setSelectedUsers(filteredUsers.map(user => user._id))
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-green-500/20 text-green-400 border-green-500/30'
-      case 'Inactive':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-      case 'Suspended':
-        return 'bg-red-500/20 text-red-400 border-red-500/30'
-      default:
-        return 'bg-dark-500/20 text-dark-400 border-dark-500/30'
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return
+    
+    try {
+      await api.deleteUser(userId)
+      // Refresh users list
+      fetchUsers()
+      // Remove from selection
+      setSelectedUsers(prev => prev.filter(id => id !== userId))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete user')
     }
+  }
+
+  const formatDate = (date: string): string => {
+    return new Date(date).toLocaleDateString()
   }
 
   const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'Admin':
+    switch (role.toLowerCase()) {
+      case 'admin':
         return 'bg-gold-500/20 text-gold-400 border-gold-500/30'
-      case 'Moderator':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-      case 'User':
+      case 'user':
         return 'bg-dark-500/20 text-dark-400 border-dark-500/30'
       default:
         return 'bg-dark-500/20 text-dark-400 border-dark-500/30'
@@ -129,21 +115,19 @@ export default function Users() {
           <h1 className="text-3xl font-bold text-white">Users</h1>
           <p className="text-dark-300 mt-1">Manage user accounts and permissions</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="border-dark-600 text-dark-300 hover:text-white">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm" className="border-dark-600 text-dark-300 hover:text-white">
-            <Upload className="w-4 h-4 mr-2" />
-            Import
-          </Button>
-          <Button className="bg-gold-500 hover:bg-gold-600 text-dark-900">
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add User
-          </Button>
-        </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <Card className="bg-red-500/20 border-red-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-red-400">
+              <AlertCircle className="w-5 h-5" />
+              <span>{error}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -152,10 +136,10 @@ export default function Users() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-dark-400 text-sm">Total Users</p>
-                <p className="text-2xl font-bold text-white">{users.length}</p>
+                <p className="text-2xl font-bold text-white">{pagination.total || users.length}</p>
               </div>
               <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
-                <Users />
+                <Search className="w-5 h-5" />
               </div>
             </div>
           </CardContent>
@@ -166,7 +150,7 @@ export default function Users() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-dark-400 text-sm">Active Users</p>
-                <p className="text-2xl font-bold text-white">{users.filter(u => u.status === 'Active').length}</p>
+                <p className="text-2xl font-bold text-white">{users.length}</p>
               </div>
               <div className="p-2 bg-green-500/20 rounded-lg">
                 <Eye className="w-5 h-5 text-green-400" />
@@ -180,10 +164,10 @@ export default function Users() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-dark-400 text-sm">Admins</p>
-                <p className="text-2xl font-bold text-white">{users.filter(u => u.role === 'Admin').length}</p>
+                <p className="text-2xl font-bold text-white">{users.filter(u => u.role === 'admin').length}</p>
               </div>
               <div className="p-2 bg-gold-500/20 rounded-lg text-gold-400">
-                <Users />
+                <UserPlus className="w-5 h-5" />
               </div>
             </div>
           </CardContent>
@@ -193,11 +177,11 @@ export default function Users() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-dark-400 text-sm">Suspended</p>
-                <p className="text-2xl font-bold text-white">{users.filter(u => u.status === 'Suspended').length}</p>
+                <p className="text-dark-400 text-sm">Verified</p>
+                <p className="text-2xl font-bold text-white">{users.filter(u => u.emailVerified).length}</p>
               </div>
-              <div className="p-2 bg-red-500/20 rounded-lg">
-                <Trash2 className="w-5 h-5 text-red-400" />
+              <div className="p-2 bg-green-500/20 rounded-lg">
+                <Eye className="w-5 h-5 text-green-400" />
               </div>
             </div>
           </CardContent>
@@ -251,63 +235,113 @@ export default function Users() {
                   <th className="text-left p-4 text-dark-300 font-medium">User</th>
                   <th className="text-left p-4 text-dark-300 font-medium">Role</th>
                   <th className="text-left p-4 text-dark-300 font-medium">Status</th>
-                  <th className="text-left p-4 text-dark-300 font-medium">Last Login</th>
+                  <th className="text-left p-4 text-dark-300 font-medium">Phone</th>
                   <th className="text-left p-4 text-dark-300 font-medium">Join Date</th>
                   <th className="text-left p-4 text-dark-300 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="border-b border-dark-700 hover:bg-dark-700/50">
-                    <td className="p-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.includes(user.id)}
-                        onChange={() => handleSelectUser(user.id)}
-                        className="rounded border-dark-600 bg-dark-700 text-gold-500 focus:ring-gold-500"
-                      />
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gold-500 rounded-full flex items-center justify-center text-dark-900 font-semibold">
-                          {user.avatar}
-                        </div>
-                        <div>
-                          <p className="text-white font-medium">{user.name}</p>
-                          <p className="text-dark-400 text-sm">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(user.role)}`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(user.status)}`}>
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-dark-300">{user.lastLogin}</td>
-                    <td className="p-4 text-dark-300">{user.joinDate}</td>
-                    <td className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm" className="text-dark-400 hover:text-white">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-dark-400 hover:text-white">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-dark-400 hover:text-white">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-6 h-6 text-gold-500 animate-spin" />
+                        <p className="text-dark-400">Loading users...</p>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-dark-400">
+                      No users found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <tr key={user._id} className="border-b border-dark-700 hover:bg-dark-700/50">
+                      <td className="p-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.includes(user._id)}
+                          onChange={() => handleSelectUser(user._id)}
+                          className="rounded border-dark-600 bg-dark-700 text-gold-500 focus:ring-gold-500"
+                        />
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gold-500 rounded-full flex items-center justify-center text-dark-900 font-semibold">
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-white font-medium">{user.name}</p>
+                            <p className="text-dark-400 text-sm">{user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(user.role)}`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                          user.emailVerified 
+                            ? 'bg-green-500/20 text-green-400 border-green-500/30' 
+                            : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        }`}>
+                          {user.emailVerified ? 'Verified' : 'Unverified'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-dark-300">{user.phone || 'N/A'}</td>
+                      <td className="p-4 text-dark-300">{formatDate(user.createdAt)}</td>
+                      <td className="p-4">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-dark-400 hover:text-red-400"
+                          onClick={() => handleDeleteUser(user._id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination */}
+          {pagination.pages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t border-dark-700">
+              <div className="text-dark-400 text-sm">
+                Showing {((page - 1) * pagination.limit) + 1} to {Math.min(page * pagination.limit, pagination.total)} of {pagination.total} users
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                  disabled={page === 1}
+                  className="border-dark-600 text-dark-300"
+                >
+                  Previous
+                </Button>
+                <span className="text-dark-300 text-sm">
+                  Page {page} of {pagination.pages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(prev => Math.min(pagination.pages, prev + 1))}
+                  disabled={page === pagination.pages}
+                  className="border-dark-600 text-dark-300"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       </div>
