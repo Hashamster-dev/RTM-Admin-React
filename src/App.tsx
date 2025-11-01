@@ -2,6 +2,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import SignIn from './pages/SignIn.tsx'
 import Dashboard from './pages/Dashboard.tsx'
 import Users from './pages/Users.tsx'
+import Tickets from './pages/Tickets.tsx'
+import PaymentMethods from './pages/PaymentMethods.tsx'
+import TicketPurchases from './pages/TicketPurchases.tsx'
 import { useAuth } from './context/AuthContext'
 import './index.css'
 
@@ -44,6 +47,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <Users />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets"
+            element={
+              <ProtectedRoute>
+                <Tickets />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment-methods"
+            element={
+              <ProtectedRoute>
+                <PaymentMethods />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/purchases"
+            element={
+              <ProtectedRoute>
+                <TicketPurchases />
               </ProtectedRoute>
             }
           />

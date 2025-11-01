@@ -9,7 +9,10 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard,
+  Ticket,
+  Receipt
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +31,21 @@ const navigation = [
     name: 'Users',
     href: '/users',
     icon: Users,
+  },
+  {
+    name: 'Tickets',
+    href: '/tickets',
+    icon: Ticket,
+  },
+  {
+    name: 'Payment Methods',
+    href: '/payment-methods',
+    icon: CreditCard,
+  },
+  {
+    name: 'Purchases',
+    href: '/purchases',
+    icon: Receipt,
   },
 ]
 

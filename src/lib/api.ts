@@ -1,6 +1,6 @@
 // API Base URL - should be set via environment variable
-// const API_BASE_URL = 'http://localhost:3000/api';
-const API_BASE_URL = 'https://rtm-backend.vercel.app/api';
+const API_BASE_URL = 'http://localhost:3000/api';
+// const API_BASE_URL = 'https://rtm-backend.vercel.app/api';
 
 // Types
 export interface ApiResponse<T = any> {
@@ -46,6 +46,47 @@ export interface DashboardStats {
   activeUsers: number;
   newUsersThisMonth: number;
   revenue?: number;
+}
+
+export interface PaymentMethod {
+  _id: string;
+  name: string;
+  ibanOrAccount: string;
+  accountHolderName: string;
+  logoUrl: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Ticket {
+  _id: string;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl: string;
+  drawDate: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TicketPurchase {
+  _id: string;
+  user: string | { _id: string; name: string; email: string; phone: string };
+  ticket: string | { _id: string; name: string; price: number; imageUrl: string; drawDate: string; description?: string };
+  paymentMethod: string | { _id: string; name: string; logoUrl: string; accountHolderName: string; ibanOrAccount: string };
+  transactionId: string;
+  amountPaid: number;
+  receiptImageUrl: string;
+  notes?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string | { _id: string; name: string; email: string };
+  reviewedAt?: string;
+  reviewNotes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Helper function to get auth token from localStorage
@@ -216,6 +257,241 @@ class ApiClient {
         (user) => new Date(user.createdAt) >= thisMonth
       ).length,
     };
+  }
+
+  // Payment Methods endpoints (Admin only)
+  async getPaymentMethods(activeOnly?: boolean): Promise<PaymentMethod[]> {
+    const query = activeOnly !== undefined ? `?activeOnly=${activeOnly}` : '';
+    return this.request<PaymentMethod[]>(`/payment-methods${query}`, {
+      method: 'GET',
+    });
+  }
+
+  async getPaymentMethodById(id: string): Promise<PaymentMethod> {
+    return this.request<PaymentMethod>(`/payment-methods/${id}`, {
+      method: 'GET',
+    });
+  }
+
+  async createPaymentMethod(data: {
+    name: string;
+    ibanOrAccount: string;
+    accountHolderName: string;
+    logo: File;
+  }): Promise<PaymentMethod> {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('ibanOrAccount', data.ibanOrAccount);
+    formData.append('accountHolderName', data.accountHolderName);
+    formData.append('logo', data.logo);
+
+    const url = `${this.baseURL}/payment-methods`;
+    const token = getToken();
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    const result: ApiResponse<PaymentMethod> = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || result.message || 'Failed to create payment method');
+    }
+
+    if (response.status === 401) {
+      removeToken();
+      throw new Error('Unauthorized. Please sign in again.');
+    }
+
+    return result.data!;
+  }
+
+  async updatePaymentMethod(
+    id: string,
+    data: {
+      name?: string;
+      ibanOrAccount?: string;
+      accountHolderName?: string;
+      isActive?: boolean;
+      logo?: File;
+    }
+  ): Promise<PaymentMethod> {
+    const formData = new FormData();
+    if (data.name) formData.append('name', data.name);
+    if (data.ibanOrAccount) formData.append('ibanOrAccount', data.ibanOrAccount);
+    if (data.accountHolderName) formData.append('accountHolderName', data.accountHolderName);
+    if (data.isActive !== undefined) formData.append('isActive', String(data.isActive));
+    if (data.logo) formData.append('logo', data.logo);
+
+    const url = `${this.baseURL}/payment-methods/${id}`;
+    const token = getToken();
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    const result: ApiResponse<PaymentMethod> = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || result.message || 'Failed to update payment method');
+    }
+
+    if (response.status === 401) {
+      removeToken();
+      throw new Error('Unauthorized. Please sign in again.');
+    }
+
+    return result.data!;
+  }
+
+  async deletePaymentMethod(id: string): Promise<void> {
+    await this.request(`/payment-methods/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Tickets endpoints (Admin only)
+  async getTickets(activeOnly?: boolean): Promise<Ticket[]> {
+    const query = activeOnly !== undefined ? `?activeOnly=${activeOnly}` : '';
+    return this.request<Ticket[]>(`/tickets${query}`, {
+      method: 'GET',
+    });
+  }
+
+  async getTicketById(id: string): Promise<Ticket> {
+    return this.request<Ticket>(`/tickets/${id}`, {
+      method: 'GET',
+    });
+  }
+
+  async createTicket(data: {
+    name: string;
+    description?: string;
+    price: number;
+    drawDate: string;
+    image: File;
+    sortOrder?: number;
+  }): Promise<Ticket> {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('price', String(data.price));
+    formData.append('drawDate', data.drawDate);
+    if (data.sortOrder !== undefined) {
+      formData.append('sortOrder', String(data.sortOrder));
+    }
+    if (data.description) {
+      formData.append('description', data.description);
+    }
+    formData.append('image', data.image);
+
+    const url = `${this.baseURL}/tickets`;
+    const token = getToken();
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    const result: ApiResponse<Ticket> = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || result.message || 'Failed to create ticket');
+    }
+
+    if (response.status === 401) {
+      removeToken();
+      throw new Error('Unauthorized. Please sign in again.');
+    }
+
+    return result.data!;
+  }
+
+  async updateTicket(
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      price?: number;
+      drawDate?: string;
+      isActive?: boolean;
+      sortOrder?: number;
+      image?: File;
+    }
+  ): Promise<Ticket> {
+    const formData = new FormData();
+    if (data.name) formData.append('name', data.name);
+    if (data.description !== undefined) formData.append('description', data.description);
+    if (data.price !== undefined) formData.append('price', String(data.price));
+    if (data.drawDate) formData.append('drawDate', data.drawDate);
+    if (data.isActive !== undefined) formData.append('isActive', String(data.isActive));
+    if (data.sortOrder !== undefined) formData.append('sortOrder', String(data.sortOrder));
+    if (data.image) formData.append('image', data.image);
+
+    const url = `${this.baseURL}/tickets/${id}`;
+    const token = getToken();
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    const result: ApiResponse<Ticket> = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || result.message || 'Failed to update ticket');
+    }
+
+    if (response.status === 401) {
+      removeToken();
+      throw new Error('Unauthorized. Please sign in again.');
+    }
+
+    return result.data!;
+  }
+
+  async deleteTicket(id: string): Promise<void> {
+    await this.request(`/tickets/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Ticket Purchases endpoints (Admin only)
+  async getTicketPurchases(status?: 'pending' | 'approved' | 'rejected'): Promise<TicketPurchase[]> {
+    const query = status ? `?status=${status}` : '';
+    return this.request<TicketPurchase[]>(`/ticket-purchases${query}`, {
+      method: 'GET',
+    });
+  }
+
+  async getTicketPurchaseById(id: string): Promise<TicketPurchase> {
+    return this.request<TicketPurchase>(`/ticket-purchases/${id}`, {
+      method: 'GET',
+    });
+  }
+
+  async updatePurchaseStatus(
+    id: string,
+    status: 'approved' | 'rejected',
+    reviewNotes?: string
+  ): Promise<TicketPurchase> {
+    return this.request<TicketPurchase>(`/ticket-purchases/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, reviewNotes }),
+    });
   }
 }
 
