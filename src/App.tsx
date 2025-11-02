@@ -13,6 +13,7 @@ import './index.css'
 function ProtectedRoute({ children }: { children: React.ReactElement }) {
   const { isAuthenticated, isLoading } = useAuth()
 
+  
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-dark-950 via-dark-900 to-dark-800">
