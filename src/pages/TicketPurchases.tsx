@@ -23,6 +23,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { api, TicketPurchase } from '@/lib/api'
+import { showToast } from '@/lib/toast'
 
 export default function TicketPurchases() {
   const [purchases, setPurchases] = useState<TicketPurchase[]>([])
@@ -89,7 +90,7 @@ export default function TicketPurchases() {
       setSelectedPurchase(purchase)
       setIsDetailModalOpen(true)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to load purchase details')
+      showToast.error(err instanceof Error ? err.message : 'Failed to load purchase details')
     }
   }
 
@@ -102,9 +103,9 @@ export default function TicketPurchases() {
       setReviewNotes('')
       setIsDetailModalOpen(false)
       fetchPurchases()
-      alert('Purchase approved successfully')
+      showToast.success('Purchase approved successfully')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to approve purchase')
+      showToast.error(err instanceof Error ? err.message : 'Failed to approve purchase')
     } finally {
       setIsProcessing(false)
     }
@@ -112,7 +113,7 @@ export default function TicketPurchases() {
 
   const handleReject = async (id: string) => {
     if (!reviewNotes.trim()) {
-      alert('Please provide a reason for rejection')
+      showToast.warning('Please provide a reason for rejection')
       return
     }
 
@@ -124,9 +125,9 @@ export default function TicketPurchases() {
       setReviewNotes('')
       setIsDetailModalOpen(false)
       fetchPurchases()
-      alert('Purchase rejected successfully')
+      showToast.success('Purchase rejected successfully')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to reject purchase')
+      showToast.error(err instanceof Error ? err.message : 'Failed to reject purchase')
     } finally {
       setIsProcessing(false)
     }
@@ -315,9 +316,11 @@ export default function TicketPurchases() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-dark-700">
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Purchase ID</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Status</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Transaction ID</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Ticket</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Quantity</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-dark-400 uppercase">User</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Amount</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Payment Method</th>
@@ -334,6 +337,9 @@ export default function TicketPurchases() {
                           return (
                             <tr key={purchase._id} className="border-b border-dark-700 hover:bg-dark-900/50">
                               <td className="px-4 py-3">
+                                <span className="text-white text-sm font-semibold font-mono">{purchase.purchaseId ?? 'N/A'}</span>
+                              </td>
+                              <td className="px-4 py-3">
                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 w-fit ${getStatusColor(purchase.status)}`}>
                                   {getStatusIcon(purchase.status)}
                                   {purchase.status.toUpperCase()}
@@ -344,6 +350,9 @@ export default function TicketPurchases() {
                               </td>
                               <td className="px-4 py-3">
                                 <span className="text-white text-sm">{ticket ? ticket.name : 'Unknown'}</span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="text-white text-sm font-semibold">{purchase.quantity ?? 1}</span>
                               </td>
                               <td className="px-4 py-3">
                                 {user ? (
@@ -357,6 +366,9 @@ export default function TicketPurchases() {
                               </td>
                               <td className="px-4 py-3">
                                 <span className="text-white font-semibold">{purchase.amountPaid.toLocaleString()} PKR</span>
+                                {ticket && (
+                                  <p className="text-dark-400 text-xs">({ticket.price.toLocaleString()} × {purchase.quantity ?? 1})</p>
+                                )}
                               </td>
                               <td className="px-4 py-3">
                                 {paymentMethod ? (
@@ -413,12 +425,12 @@ export default function TicketPurchases() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
+                            <span className="text-xs font-semibold font-mono text-gold-400">
+                              {purchase.purchaseId ?? 'N/A'}
+                            </span>
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 ${getStatusColor(purchase.status)}`}>
                               {getStatusIcon(purchase.status)}
                               {purchase.status.toUpperCase()}
-                            </span>
-                            <span className="text-xs text-dark-500">
-                              #{purchase.transactionId}
                             </span>
                           </div>
                           <CardTitle className="text-white">
@@ -452,16 +464,30 @@ export default function TicketPurchases() {
                           <p className="text-white font-semibold">
                             {purchase.amountPaid.toLocaleString()} PKR
                           </p>
+                          {ticket && (
+                            <p className="text-xs text-dark-400 mt-1">
+                              {ticket.price.toLocaleString()} × {purchase.quantity ?? 1}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <p className="text-xs text-dark-500 mb-1 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            Purchase Date
+                            <TicketIcon className="w-3 h-3" />
+                            Quantity
                           </p>
-                          <p className="text-white text-sm">
-                            {formatDate(purchase.createdAt)}
+                          <p className="text-white font-semibold">
+                            {purchase.quantity ?? 1} {(purchase.quantity ?? 1) === 1 ? 'ticket' : 'tickets'}
                           </p>
                         </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-dark-500 mb-1 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          Purchase Date
+                        </p>
+                        <p className="text-white text-sm">
+                          {formatDate(purchase.createdAt)}
+                        </p>
                       </div>
                       {paymentMethod && (
                         <div>
@@ -667,12 +693,27 @@ export default function TicketPurchases() {
                   <p className="text-sm font-semibold text-white mb-3">Transaction Details</p>
                   <div className="bg-dark-900 rounded-lg p-4 space-y-2">
                     <div className="flex justify-between">
+                      <span className="text-sm text-dark-400">Purchase ID:</span>
+                      <span className="text-sm text-white font-semibold font-mono text-gold-400">{selectedPurchase.purchaseId ?? 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-sm text-dark-400">Transaction ID:</span>
                       <span className="text-sm text-white font-mono">{selectedPurchase.transactionId}</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-sm text-dark-400">Quantity:</span>
+                      <span className="text-sm text-white font-semibold">{selectedPurchase.quantity ?? 1} {(selectedPurchase.quantity ?? 1) === 1 ? 'ticket' : 'tickets'}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-sm text-dark-400">Amount Paid:</span>
-                      <span className="text-sm text-white font-semibold text-gold-400">{selectedPurchase.amountPaid.toLocaleString()} PKR</span>
+                      <span className="text-sm font-semibold text-gold-400">
+                        {selectedPurchase.amountPaid.toLocaleString()} PKR
+                        {typeof selectedPurchase.ticket === 'object' && (
+                          <span className="text-dark-400 text-xs ml-2">
+                            ({selectedPurchase.ticket.price.toLocaleString()} × {selectedPurchase.quantity ?? 1})
+                          </span>
+                        )}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-dark-400">Purchase Date:</span>

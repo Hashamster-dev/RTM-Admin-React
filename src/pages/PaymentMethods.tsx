@@ -15,6 +15,7 @@ import {
   X
 } from 'lucide-react'
 import { api, PaymentMethod } from '@/lib/api'
+import { showToast } from '@/lib/toast'
 
 export default function PaymentMethods() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -104,11 +105,11 @@ export default function PaymentMethods() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB')
+        showToast.error('File size must be less than 5MB')
         return
       }
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file')
+        showToast.error('Please select an image file')
         return
       }
       setFormData({
@@ -123,12 +124,12 @@ export default function PaymentMethods() {
     e.preventDefault()
     
     if (!formData.name.trim() || !formData.ibanOrAccount.trim() || !formData.accountHolderName.trim()) {
-      alert('Please fill in all required fields')
+      showToast.warning('Please fill in all required fields')
       return
     }
 
     if (!isEditing && !formData.logo) {
-      alert('Please upload a logo image')
+      showToast.warning('Please upload a logo image')
       return
     }
 
@@ -143,9 +144,10 @@ export default function PaymentMethods() {
           isActive: formData.isActive,
           ...(formData.logo && { logo: formData.logo }),
         })
+        showToast.success('Payment method updated successfully')
       } else {
         if (!formData.logo) {
-          alert('Logo is required for new payment methods')
+          showToast.error('Logo is required for new payment methods')
           return
         }
         await api.createPaymentMethod({
@@ -154,12 +156,13 @@ export default function PaymentMethods() {
           accountHolderName: formData.accountHolderName.trim(),
           logo: formData.logo,
         })
+        showToast.success('Payment method created successfully')
       }
       
       handleCloseModal()
       fetchPaymentMethods()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save payment method')
+      showToast.error(err instanceof Error ? err.message : 'Failed to save payment method')
     } finally {
       setIsSubmitting(false)
     }
@@ -170,9 +173,10 @@ export default function PaymentMethods() {
     
     try {
       await api.deletePaymentMethod(id)
+      showToast.success('Payment method deleted successfully')
       fetchPaymentMethods()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete payment method')
+      showToast.error(err instanceof Error ? err.message : 'Failed to delete payment method')
     }
   }
 

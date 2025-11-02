@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react'
 import { api, Ticket as TicketType } from '@/lib/api'
+import { showToast } from '@/lib/toast'
 
 export default function Tickets() {
   const [tickets, setTickets] = useState<TicketType[]>([])
@@ -64,7 +65,14 @@ export default function Tickets() {
     if (ticket) {
       setIsEditing(true)
       setEditingId(ticket._id)
-      const drawDate = new Date(ticket.drawDate).toISOString().split('T')[0]
+      // Convert date to datetime-local format (YYYY-MM-DDTHH:mm)
+      const date = new Date(ticket.drawDate)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      const drawDate = `${year}-${month}-${day}T${hours}:${minutes}`
       setFormData({
         name: ticket.name,
         description: ticket.description || '',
@@ -112,11 +120,11 @@ export default function Tickets() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB')
+        showToast.error('File size must be less than 5MB')
         return
       }
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file')
+        showToast.error('Please select an image file')
         return
       }
       setFormData({
@@ -131,18 +139,18 @@ export default function Tickets() {
     e.preventDefault()
     
     if (!formData.name.trim() || !formData.price.trim() || !formData.drawDate.trim()) {
-      alert('Please fill in all required fields')
+      showToast.warning('Please fill in all required fields')
       return
     }
 
     const priceNum = parseFloat(formData.price)
     if (isNaN(priceNum) || priceNum < 0) {
-      alert('Please enter a valid price')
+      showToast.error('Please enter a valid price')
       return
     }
 
     if (!isEditing && !formData.image) {
-      alert('Please upload a ticket image')
+      showToast.warning('Please upload a ticket image')
       return
     }
 
@@ -150,18 +158,20 @@ export default function Tickets() {
       setIsSubmitting(true)
       
       if (isEditing && editingId) {
+        // Price cannot be changed after ticket creation, so don't send it in update
         await api.updateTicket(editingId, {
           name: formData.name.trim(),
           description: formData.description.trim() || undefined,
-          price: priceNum,
+          // price is intentionally omitted - cannot be changed after creation
           drawDate: formData.drawDate,
           isActive: formData.isActive,
           sortOrder: parseInt(formData.sortOrder, 10) || 0,
           ...(formData.image && { image: formData.image }),
         })
+        showToast.success('Ticket updated successfully')
       } else {
         if (!formData.image) {
-          alert('Image is required for new tickets')
+          showToast.error('Image is required for new tickets')
           return
         }
         await api.createTicket({
@@ -172,12 +182,13 @@ export default function Tickets() {
           sortOrder: parseInt(formData.sortOrder, 10) || 0,
           image: formData.image,
         })
+        showToast.success('Ticket created successfully')
       }
       
       handleCloseModal()
       fetchTickets()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save ticket')
+      showToast.error(err instanceof Error ? err.message : 'Failed to save ticket')
     } finally {
       setIsSubmitting(false)
     }
@@ -389,6 +400,11 @@ export default function Tickets() {
                   <div>
                     <label className="block text-sm font-medium text-dark-300 mb-2">
                       Price (PKR) *
+                      {isEditing && (
+                        <span className="ml-2 text-xs text-dark-500 italic">
+                          (Price cannot be modified)
+                        </span>
+                      )}
                     </label>
                     <Input
                       type="number"
@@ -398,7 +414,8 @@ export default function Tickets() {
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       placeholder="Enter ticket price"
                       required
-                      className="bg-dark-900 border-dark-700 text-white"
+                      disabled={isEditing}
+                      className="bg-dark-900 border-dark-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
 

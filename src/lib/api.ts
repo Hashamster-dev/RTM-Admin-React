@@ -1,6 +1,6 @@
 // API Base URL - should be set via environment variable
-// const API_BASE_URL = 'http://localhost:3000/api';
-const API_BASE_URL = 'https://rtm-backend.vercel.app/api';
+const API_BASE_URL = 'http://localhost:3000/api';
+// const API_BASE_URL = 'https://rtm-backend.vercel.app/api';
 
 // Types
 export interface ApiResponse<T = any> {
@@ -27,6 +27,9 @@ export interface User {
   role: 'admin' | 'user';
   emailVerified: boolean;
   phoneVerified: boolean;
+  referralCode?: string;
+  referredBy?: User | null;
+  referredUsers?: User[];
   createdAt: string;
   updatedAt: string;
 }
@@ -74,10 +77,12 @@ export interface Ticket {
 
 export interface TicketPurchase {
   _id: string;
+  purchaseId: string;
   user: string | { _id: string; name: string; email: string; phone: string };
   ticket: string | { _id: string; name: string; price: number; imageUrl: string; drawDate: string; description?: string };
   paymentMethod: string | { _id: string; name: string; logoUrl: string; accountHolderName: string; ibanOrAccount: string };
   transactionId: string;
+  quantity: number;
   amountPaid: number;
   receiptImageUrl: string;
   notes?: string;

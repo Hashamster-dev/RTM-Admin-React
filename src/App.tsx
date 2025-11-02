@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import SignIn from './pages/SignIn.tsx'
 import Dashboard from './pages/Dashboard.tsx'
 import Users from './pages/Users.tsx'
@@ -31,6 +32,12 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-background">
+        <Toaster 
+          position="top-right"
+          richColors
+          closeButton
+          theme="dark"
+        />
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/signin" element={<SignIn />} />
