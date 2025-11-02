@@ -15,7 +15,6 @@ import {
   ChevronRight,
   X,
   Mail,
-  Phone,
   Shield,
   CheckCircle,
   XCircle,
@@ -23,8 +22,7 @@ import {
   Key,
   Users as UsersIcon,
   ArrowDown,
-  ArrowUp,
-  UserCog
+  ArrowUp
 } from 'lucide-react'
 import { api, User } from '@/lib/api'
 import { showToast } from '@/lib/toast'
