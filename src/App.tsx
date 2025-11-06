@@ -6,6 +6,8 @@ import Users from './pages/Users.tsx'
 import Tickets from './pages/Tickets.tsx'
 import PaymentMethods from './pages/PaymentMethods.tsx'
 import TicketPurchases from './pages/TicketPurchases.tsx'
+import Winners from './pages/Winners.tsx'
+import Settings from './pages/Settings.tsx'
 import { useAuth } from './context/AuthContext'
 import './index.css'
 
@@ -79,6 +81,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <TicketPurchases />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/winners"
+            element={
+              <ProtectedRoute>
+                <Winners />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />

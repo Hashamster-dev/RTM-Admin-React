@@ -94,6 +94,18 @@ export interface TicketPurchase {
   updatedAt: string;
 }
 
+export interface Winner {
+  _id: string;
+  name: string;
+  prize: number;
+  drawDate: string;
+  ticketName: string;
+  ticket?: string;
+  user?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Helper function to get auth token from localStorage
 const getToken = (): string | null => {
   return localStorage.getItem('authToken');
@@ -188,6 +200,8 @@ class ApiClient {
   }
 
   // User endpoints (Admin only)
+  // Note: Backend uses smart routing - /users with admin auth returns paginated users,
+  // while /users without auth returns public spinner data (max 10 users)
   async getUsers(params?: {
     page?: number;
     limit?: number;
@@ -498,6 +512,100 @@ class ApiClient {
       body: JSON.stringify({ status, reviewNotes }),
     });
   }
+
+  // Winners endpoints (Admin only)
+  async getWinners(params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<Winner>> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const queryString = queryParams.toString();
+    const endpoint = `/winners${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+      },
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || result.message || 'Failed to fetch winners');
+    }
+
+    return {
+      success: result.success,
+      message: result.message || 'Winners retrieved successfully',
+      data: result.data || [],
+      pagination: result.pagination,
+    } as PaginatedResponse<Winner>;
+  }
+
+  async createWinner(data: {
+    name: string;
+    prize: number;
+    drawDate: string;
+    ticketName: string;
+    ticketId?: string;
+    userId?: string;
+  }): Promise<Winner> {
+    return this.request<Winner>('/winners', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateWinner(
+    id: string,
+    data: {
+      name?: string;
+      prize?: number;
+      drawDate?: string;
+      ticketName?: string;
+      ticketId?: string;
+      userId?: string;
+    }
+  ): Promise<Winner> {
+    return this.request<Winner>(`/winners/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteWinner(id: string): Promise<void> {
+    await this.request(`/winners/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // App Settings endpoints
+  async getAppSettings(): Promise<AppSettings> {
+    return this.request<AppSettings>('/settings', {
+      method: 'GET',
+    });
+  }
+
+  async updateAppSettings(data: {
+    youtubeChannelUrl?: string;
+    youtubeLiveStreamUrl?: string;
+  }): Promise<AppSettings> {
+    return this.request<AppSettings>('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+}
+
+// App Settings interface
+export interface AppSettings {
+  youtubeChannelUrl: string;
+  youtubeLiveStreamUrl: string;
 }
 
 // Create and export API client instance

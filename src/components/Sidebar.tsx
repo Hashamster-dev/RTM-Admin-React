@@ -5,14 +5,15 @@ import {
   LayoutDashboard, 
   Users, 
   LogOut, 
-  Settings,
+  Settings as SettingsIcon,
   Menu,
   X,
   ChevronLeft,
   ChevronRight,
   CreditCard,
   Ticket,
-  Receipt
+  Receipt,
+  Trophy
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -46,6 +47,16 @@ const navigation = [
     name: 'Purchases',
     href: '/purchases',
     icon: Receipt,
+  },
+  {
+    name: 'Winners',
+    href: '/winners',
+    icon: Trophy,
+  },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: SettingsIcon,
   },
 ]
 
@@ -134,17 +145,7 @@ export default function Sidebar({ onLogout, isLoading }: SidebarProps) {
           </nav>
 
           {/* Bottom section */}
-          <div className="p-4 border-t border-dark-700 space-y-2">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start text-dark-300 hover:text-white hover:bg-dark-700",
-                isCollapsed && "justify-center px-2"
-              )}
-            >
-              <Settings className={cn("w-5 h-5", !isCollapsed && "mr-3")} />
-              {!isCollapsed && <span>Settings</span>}
-            </Button>
+                 <div className="p-4 border-t border-dark-700 space-y-2">
             
             <Button
               variant="ghost"
