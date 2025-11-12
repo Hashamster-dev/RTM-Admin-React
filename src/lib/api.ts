@@ -594,6 +594,7 @@ class ApiClient {
   async updateAppSettings(data: {
     youtubeChannelUrl?: string;
     youtubeLiveStreamUrl?: string;
+    isAppUpdateAble?: boolean;
   }): Promise<AppSettings> {
     return this.request<AppSettings>('/settings', {
       method: 'PUT',
@@ -606,6 +607,7 @@ class ApiClient {
 export interface AppSettings {
   youtubeChannelUrl: string;
   youtubeLiveStreamUrl: string;
+  isAppUpdateAble: boolean;
 }
 
 // Create and export API client instance

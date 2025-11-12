@@ -19,10 +19,12 @@ export default function Settings() {
   const [settings, setSettings] = useState<AppSettings>({
     youtubeChannelUrl: '',
     youtubeLiveStreamUrl: '',
+    isAppUpdateAble: false,
   })
   const [originalSettings, setOriginalSettings] = useState<AppSettings>({
     youtubeChannelUrl: '',
     youtubeLiveStreamUrl: '',
+    isAppUpdateAble: false,
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -54,7 +56,8 @@ export default function Settings() {
     // Check if settings have changed
     const changed = 
       settings.youtubeChannelUrl !== originalSettings.youtubeChannelUrl ||
-      settings.youtubeLiveStreamUrl !== originalSettings.youtubeLiveStreamUrl
+      settings.youtubeLiveStreamUrl !== originalSettings.youtubeLiveStreamUrl ||
+      settings.isAppUpdateAble !== originalSettings.isAppUpdateAble
     setHasChanges(changed)
   }, [settings, originalSettings])
 
@@ -186,6 +189,12 @@ export default function Settings() {
                       {settings.youtubeLiveStreamUrl || 'Not set'}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-dark-400">App Update Available:</span>
+                    <span className={`text-white ${settings.isAppUpdateAble ? 'text-gold-500' : 'text-dark-500'}`}>
+                      {settings.isAppUpdateAble ? 'Yes' : 'No'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -271,6 +280,33 @@ export default function Settings() {
                 <p className="text-dark-400 text-xs mt-2">
                   The URL to your current or upcoming live stream (e.g., https://www.youtube.com/watch?v=...)
                 </p>
+              </div>
+
+              {/* App Update Availability */}
+              <div className="bg-dark-900/50 border border-dark-700 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-1">
+                      App Update Available
+                    </label>
+                    <p className="text-dark-400 text-xs">
+                      When enabled, users will see an update banner on the home screen with a link to download the latest version
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.isAppUpdateAble}
+                      onChange={(e) => setSettings({ ...settings, isAppUpdateAble: e.target.checked })}
+                      className="w-5 h-5 rounded border-dark-700 bg-dark-900 text-gold-500 focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-dark-800 cursor-pointer"
+                    />
+                    <span className="text-sm text-white">
+                      {settings.isAppUpdateAble ? 'Update banner is visible to users' : 'Update banner is hidden'}
+                    </span>
+                  </label>
+                </div>
               </div>
 
               {/* Action Buttons */}
